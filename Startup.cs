@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ApiProyect.Context;
+using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -28,13 +29,12 @@ namespace ApiProyect
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
-            // other service configurations go here
-            // replace "YourDbContext" with the class name of your DbContext
+            services.AddAutoMapper(typeof(Startup));
+           
             services.AddDbContextPool<PizzaShopDbContext>(options => options
-               // replace with your connection string
+               
                .UseMySql("server=localhost;database=ApiPizzaShop;user=root;password=AIBL343190", mySqlOptions => mySqlOptions
-                   // replace with your Server Version and Type
+                   
                    .ServerVersion(new Version(8, 0, 19), ServerType.MySql)
                   ));
             services.AddControllers().AddNewtonsoftJson(Options =>

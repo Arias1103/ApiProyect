@@ -2,14 +2,16 @@
 using ApiProyect.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace ApiProyect.Migrations
 {
     [DbContext(typeof(PizzaShopDbContext))]
-    partial class PizzaShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20200520170509_image_include")]
+    partial class image_include
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

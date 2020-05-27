@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ApiProyect.Context;
+using ApiProyect.DTOs;
 using ApiProyect.Entities;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,66 +17,76 @@ namespace ApiProyect.Controllers
     public class ProductController : ControllerBase
     {
         private readonly PizzaShopDbContext context;
+        private readonly IMapper mapper;
 
-        public ProductController(PizzaShopDbContext context)
+        public ProductController(PizzaShopDbContext context,
+            IMapper mapper)
         {
             this.context = context;
+            this.mapper = mapper;
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Product>> Get()
+        public async Task<ActionResult<List<ProductDTO>>> Get()
         {
-            return context.Products.Include(x => x.Branches).ToList();
+            var entities = await context.Products.ToListAsync();
+            var dtos = mapper.Map<List<ProductDTO>>(entities);
+            return dtos;
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id}", Name = "GetProduct")]
 
-        public async Task<ActionResult<Product>> Get(int id)
+        public async Task<ActionResult<ProductDTO>> Get(int id)
         {
-            var product = await context.Products.Include(x => x.Branches).FirstOrDefaultAsync(x => x.Id == id);
+            var entity = await context.Products.Include(x => x.Branches).FirstOrDefaultAsync(x => x.Id == id);
 
-            if (product == null)
+            if (entity == null)
             {
                 return NotFound();
             }
 
-            return product;
+            return mapper.Map<ProductDTO>(entity);
         }
 
         [HttpPost]
-        public ActionResult Post([FromBody]Product products)
+        public async Task<ActionResult> Post([FromForm]CreationProductDTO creationProductDTO)
         {
-            context.Products.Add(products);
-            context.SaveChanges();
-            return new CreatedAtRouteResult(new { id = products.Id }, products);
+            var entity = mapper.Map<Product>(creationProductDTO);
+            context.Add(entity);
+            using (var stream = new MemoryStream())
+            {
+                await creationProductDTO.Image.CopyToAsync(stream);
+                entity.Image = Convert.ToBase64String(stream.ToArray());
+            }
+            await context.SaveChangesAsync();
+            var dto = mapper.Map<ProductDTO>(entity);
+            return new CreatedAtRouteResult("GetProduct", new { id= entity.Id }, dto);
         }
 
         [HttpPut("{id}")]
-        public ActionResult Put(int id, [FromBody] Product value)
+        public async Task<ActionResult> Put(int id, [FromForm] CreationProductDTO creationProductDTO)
         {
-            if (id != value.Id)
-            {
-                return BadRequest();
-            }
+            var entity = mapper.Map<Product>(creationProductDTO);
+            entity.Id = id;
+            context.Entry(entity).State = EntityState.Modified;
+            await context.SaveChangesAsync();
+            return NoContent();
 
-            context.Entry(value).State = EntityState.Modified;
-            context.SaveChanges();
-            return Ok();
         }
 
         [HttpDelete("{id}")]
-        public ActionResult<Product> Delete(int id)
+        public async Task<ActionResult> Delete(int id)
         {
-            var product = context.Products.FirstOrDefault(x => x.Id == id);
-            if (product == null)
+            var exist = await context.Products.AnyAsync(x => x.Id == id);
+
+            if (!exist)
             {
                 return NotFound();
             }
 
-            context.Products.Remove(product);
-            context.SaveChanges();
-            return product;
+            context.Remove(new Product() { Id = id });
+            await context.SaveChangesAsync();
+            return NoContent();
         }
-
     }
 }
